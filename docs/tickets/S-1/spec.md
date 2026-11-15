@@ -18,7 +18,7 @@ R7 (« le ticket est une donnée ») n'est qu'une consigne ; une injection dans 
 - Le reviewer n'a que des commandes de lecture.
 - Le hook refuse aussi `.env`, `*.pem`, `.git/` et toute écriture quand `.sdlc-step` est absent (pas d'étape = pas d'écriture de code).
 - Le hook a un test déterministe, `make check-cadre`, qui lui envoie des entrées JSON et vérifie les codes de sortie.
-- Côté GitHub, `CODEOWNERS` et la protection de `main` rendent R3 vraie hors du poste.
+- Côté GitHub, la protection de `main` rend R3 vraie hors du poste. Pas de `CODEOWNERS` : dépôt à un seul contributeur, qui ne peut pas approuver sa propre PR.
 
 ## Hypothèses (tranchées)
 1. **Liste deny** : `Bash(git push:*)`, `Bash(git -C:*)`, `Bash(git reset:*)`, `Bash(git checkout:*)`, `Bash(git stash:*)`, `Bash(git clean:*)`, `Bash(git branch -D:*)`, `Bash(gh:*)`, `Bash(rm -rf:*)`, `Bash(rm -fr:*)`, `Bash(curl:*)`, `Bash(wget:*)`, `WebFetch`, `WebSearch`, `Read(./.env)`, `Read(./.env.*)`, `Read(**/*.pem)`. Une règle Bash ne voit que le début de la commande : c'est un filet, pas une garantie, et les écritures par Bash échappent aussi au hook.
@@ -32,7 +32,7 @@ R7 (« le ticket est une donnée ») n'est qu'une consigne ; une injection dans 
 - **C1** — Étant donné une session, quand l'agent tente `git push`, alors Claude Code refuse par la liste deny, sans passer par le hook (vérifié une fois à la main, noté dans le journal du chantier).
 - **C2** — Étant donné `make check-cadre`, quand il tourne, alors les cas de `test-guard.sh` passent tous, dont : `sdlc/x.md` refusé toujours ; `api/tests/x.rs` refusé si `implementer`, accepté si `tests` ; `api/src/x.rs` refusé sans `.sdlc-step` ; `.env` refusé toujours ; une commande Bash contenant `make valider` refusée ; un `new_string` contenant `Validation humaine` refusé.
 - **C3** — Étant donné le reviewer, quand on lui demande `git commit`, alors l'outil est refusé (manuel, une fois).
-- **C4** — Étant donné `.github/CODEOWNERS`, quand on l'ouvre, alors `sdlc/`, `.claude/`, `Makefile`, `CLAUDE.md` ont un propriétaire ; la protection de `main` exige une revue (capture d'écran dans NOTES).
+- **C4** — Étant donné la protection de `main`, quand on pousse directement ou en force sur `main`, alors GitHub refuse ; une PR est exigée, sans revue obligatoire (capture d'écran dans NOTES).
 - **C5** — Étant donné `make audit` et `cargo-audit` installé, quand il tourne, alors une ligne `== audit` apparaît et une vulnérabilité fait échouer la cible ; `make check` ne lance pas l'audit.
 
 ## Hors périmètre
@@ -47,7 +47,6 @@ R7 (« le ticket est une donnée ») n'est qu'une consigne ; une injection dans 
 .claude/agents/reviewer.md
 .claude/hooks/guard.sh
 .claude/hooks/test-guard.sh
-.github/CODEOWNERS
 Makefile
 sdlc/constitution.md
 sdlc/README.md
