@@ -16,6 +16,25 @@
     "allow": [
       "Bash(git add:*)",
       "Bash(git commit:*)"
+    ],
+    "deny": [
+      "Bash(git push:*)",
+      "Bash(git -C:*)",
+      "Bash(git reset:*)",
+      "Bash(git checkout:*)",
+      "Bash(git stash:*)",
+      "Bash(git clean:*)",
+      "Bash(git branch -D:*)",
+      "Bash(gh:*)",
+      "Bash(rm -rf:*)",
+      "Bash(rm -fr:*)",
+      "Bash(curl:*)",
+      "Bash(wget:*)",
+      "WebFetch",
+      "WebSearch",
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(**/*.pem)"
     ]
   }
 }

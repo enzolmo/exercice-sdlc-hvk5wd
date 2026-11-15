@@ -1,5 +1,5 @@
 SHELL := /bin/bash
-.PHONY: test api web install check check-red check-scope valider bilan run-check run-check-red
+.PHONY: test api web install check check-red check-scope check-cadre audit valider bilan run-check run-check-red
 
 # Tous les tests (API Rust puis front TypeScript).
 test:
@@ -40,7 +40,7 @@ check:
 	  $(call journaliser,$$titre,$$body); \
 	fi; rm -f $$log; exit $$st
 
-run-check: check-scope
+run-check: check-scope check-cadre
 	@echo "== fmt" && cd api && cargo fmt --check
 	@echo "== clippy" && cd api && cargo clippy --all-targets -- -D warnings
 	@echo "== cargo test" && cd api && cargo test
@@ -72,6 +72,16 @@ run-check-red: check-scope
 	esac || { echo "$$out"; echo "check-red : $$f doit être entièrement rouge"; exit 1; }; \
 	echo "$$out" | grep -E '^test |test result'; done; \
 	echo "check-red OK : nouveaux tests rouges, anciens verts"
+
+# R13 · Le hook rejoue ses cas : entrées JSON connues, codes de sortie attendus
+check-cadre:
+	@echo "== cadre"; .claude/hooks/test-guard.sh | grep -v '^ok'; exit $${PIPESTATUS[0]}
+
+# Vulnérabilités connues des dépendances ; hors de make check car elle interroge le réseau
+audit:
+	@echo "== audit"
+	@if command -v cargo-audit >/dev/null; then cd api && cargo audit; else echo "audit : cargo-audit absent (cargo install cargo-audit), API non auditée"; fi
+	@cd web && npm audit --audit-level=high
 
 # N'écrire que dans le bloc Fichiers de la spec (plus docs/tickets/<T>/ et NOTES.md)
 check-scope:
