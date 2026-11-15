@@ -26,7 +26,7 @@ Une porte est un endroit où le cycle ne continue pas tout seul. Le jugement hum
 | P1 · Spec | 01 | Humain | Hypothèses tranchées, hors périmètre écrit, classe de risque déclarée |
 | P2 · Rouge | 03 | `make check-red` | Nouveaux tests compilent, formatés et sans avertissement clippy, et échouent, anciens verts, seuls des tests et le socle ont bougé, aucune horloge |
 | P3 · Vert | 04 | `make check` | fmt, clippy `-D warnings`, `cargo test`, `npm test`, scope, tests gelés, cas du hook |
-| P4 · Merge | 05 | Humain | Lit `revue.md` (et le diff si risque élevé) ; décide : livrer, corriger, reprendre à la main |
+| P4 · Merge | 05 | Humain | Lit `revue.md` (et le diff si risque élevé), lance `make audit` ; décide : livrer, corriger, reprendre à la main |
 
 Chaque passage de porte s'écrit seul dans `journal.md`, sans l'agent : `make check-red` et `make check` y ajoutent leur résultat (et le numéro d'itération de B2), `make valider P=P1 MSG="…"` y signe une décision humaine avec le nom git, `make bilan` y totalise le cycle. L'agent n'y ajoute que ce qui demande du jugement : le diagnostic d'un échec et le verdict de la revue.
 
