@@ -19,7 +19,7 @@ L'agent commite ; il ne pousse pas et n'ouvre pas la pull request : il en prépa
    docs: notes <id>
    ```
    Conventional Commits, sans scope, une seule ligne, minuscules, impératif, pas de point final. S'il manque un commit ou si des fichiers restent non commités, commite-les, un chemin par `git add`.
-3. **NOTES.md** : lance d'abord `make bilan`, qui ajoute au journal les totaux du cycle (itérations B2, tours B3, escalades, validations humaines). Puis écris NOTES.md, une page au plus, en premier jet à partir de `journal.md` et `revue.md` :
+3. **NOTES.md** : lance d'abord `make bilan`, qui ajoute au journal les totaux du cycle (itérations B2, tours B3, escalades, validations humaines, refus du hook), et à `events.jsonl` un événement `commit` par commit du ticket avec la session en cours : c'est le lien commit → session, sans rien dans le message de commit. Puis écris NOTES.md, une page au plus, en premier jet à partir de `journal.md` et `revue.md` :
    - comment le cycle s'est déroulé : étapes, itérations de B2, tours de B3, escalades ;
    - ce qui a été confié à l'agent ;
    - ce que l'humain a vérifié ou corrigé à la main, aux portes P1 et P4 surtout ;
@@ -30,4 +30,4 @@ L'agent commite ; il ne pousse pas et n'ouvre pas la pull request : il en prépa
    - titre : la ligne du commit `feat` ;
    - description : What (une phrase), Why (le ticket), Changes (un point par fichier), Testing (`make check`, `make test`, nombre de tests).
 
-**Commit** : L'agent fait lui-même `git add` (un chemin par fichier) et `git commit` ; `docs: notes <id>` avec `NOTES.md`, `journal.md`. Une fois ce commit fait, supprime `.sdlc-step`.
+**Commit** : L'agent fait lui-même `git add` (un chemin par fichier) et `git commit` ; `docs: notes <id>` avec `NOTES.md`, `journal.md`, `events.jsonl`. Une fois ce commit fait, supprime `.sdlc-step`.
