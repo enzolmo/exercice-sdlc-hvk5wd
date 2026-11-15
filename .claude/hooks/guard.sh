@@ -13,7 +13,12 @@ fi
 
 path=$(jq -r '.tool_input.file_path // .tool_input.notebook_path // empty' <<<"$input")
 [ -z "$path" ] && exit 0
-root=${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel)}
+root=${CLAUDE_PROJECT_DIR:-$PWD}
+# Un chemin absolu peut viser un autre worktree : ses règles et son .sdlc-step sont ceux de son propre dépôt
+case $path in
+  /*) d=$(dirname "$path"); while [ ! -d "$d" ]; do d=$(dirname "$d"); done
+    root=$(git -C "$d" rev-parse --show-toplevel 2>/dev/null || echo "$root") ;;
+esac
 rel=${path#"$root"/}
 step=$(awk '{print $1; exit}' "$root/.sdlc-step" 2>/dev/null)
 

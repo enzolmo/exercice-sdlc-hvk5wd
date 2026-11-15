@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 # Envoie des entrées PreToolUse à guard.sh dans un projet jetable et vérifie le code de sortie (0 accepté, 2 refusé).
 guard=$(cd "$(dirname "$0")" && pwd)/guard.sh
-root=$(mktemp -d)
-trap 'rm -rf "$root"' EXIT
+root=$(cd "$(mktemp -d)" && pwd -P)
+wt=$(cd "$(mktemp -d)" && pwd -P)
+trap 'rm -rf "$root" "$wt"' EXIT
+git -C "$root" init -q && git -C "$wt" init -q
+echo "implementer T-1" >"$wt/.sdlc-step"
 export CLAUDE_PROJECT_DIR=$root
 fail=0
 # Coupée en deux : écrite en entier, la formule ferait refuser ce fichier par le hook qu'il teste.
@@ -46,5 +49,8 @@ cas 2 implementer "libre écrit par Bash dans .sdlc-step refusé" "$(bash_ 'echo
 cas 2 implementer "libre écrit par Write dans .sdlc-step refusé" "$(write "$root/.sdlc-step" libre)"
 cas 0 libre "lire libre dans .sdlc-step accepté" "$(bash_ 'grep -c libre .sdlc-step')"
 cas 0 cadrer "étape de cycle écrite dans .sdlc-step acceptée" "$(bash_ 'echo "tests T-1" > .sdlc-step')"
+cas 2 libre "worktree : cadre refusé selon son propre .sdlc-step" "$(write "$wt/sdlc/x.md")"
+cas 2 libre "worktree : tests gelés selon son propre .sdlc-step" "$(write "$wt/api/tests/x.rs")"
+cas 0 libre "worktree : code accepté pendant implementer" "$(write "$wt/api/src/x.rs")"
 
 [ $fail = 0 ] && echo "check-cadre OK" || { echo "check-cadre : guard.sh ne fait pas ce que disent ses cas"; exit 1; }
