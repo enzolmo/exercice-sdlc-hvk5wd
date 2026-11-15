@@ -16,9 +16,12 @@ root=${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel)}
 rel=${path#"$root"/}
 step=$(awk '{print $1; exit}' "$root/.sdlc-step" 2>/dev/null)
 
-case $rel in
-  sdlc/* | .claude/* | Makefile | CLAUDE.md) deny "$rel refusé : fichier du cadre, humain seulement (R3)" ;;
-esac
+# R3 : fichiers du cadre, humain seulement — sauf en étape « libre », posée à la main pour un chantier du cadre
+if [ "$step" != libre ]; then
+  case $rel in
+    sdlc/* | .claude/* | Makefile | CLAUDE.md) deny "$rel refusé : fichier du cadre, humain seulement (R3)" ;;
+  esac
+fi
 if [ "$step" = implementer ]; then
   case $rel in
     api/tests/* | *.test.ts) deny "$rel refusé : tests gelés pendant 04 Implémenter (R2)" ;;
