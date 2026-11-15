@@ -15,7 +15,7 @@ Un cycle minimal pour qu'un agent de code traite un ticket proprement : six éta
 /sdlc-livrer T-142      06  commits, NOTES.md, pull request
 ```
 
-Chaque commande écrit `<étape> <ticket>` dans `.sdlc-step`, puis suit le fichier `sdlc/0X-*.md` correspondant. Le hook `.claude/hooks/guard.sh` lit `.sdlc-step` pour savoir ce qui est permis. Les traces vont dans `docs/tickets/<id>/` : `spec.md`, `tasks.md`, `revue.md`, `journal.md` (modèles dans `templates/`).
+Chaque commande écrit `<étape> <ticket>` dans `.sdlc-step`, puis suit le fichier `sdlc/0X-*.md` correspondant. Le hook `.claude/hooks/guard.sh` lit `.sdlc-step` pour savoir ce qui est permis. Sans `.sdlc-step`, il refuse toute écriture sous `api/` et `web/` ; pour un chantier du cadre hors cycle, l'humain écrit lui-même `libre` dans `.sdlc-step`. `make check-cadre` rejoue les cas du hook. Les traces vont dans `docs/tickets/<id>/` : `spec.md`, `tasks.md`, `revue.md`, `journal.md` (modèles dans `templates/`).
 
 ## Les quatre portes
 
@@ -25,7 +25,7 @@ Une porte est un endroit où le cycle ne continue pas tout seul. Le jugement hum
 | --- | --- | --- | --- |
 | P1 · Spec | 01 | Humain | Hypothèses tranchées, hors périmètre écrit, classe de risque déclarée |
 | P2 · Rouge | 03 | `make check-red` | Nouveaux tests compilent, formatés et sans avertissement clippy, et échouent, anciens verts, seuls des tests et le socle ont bougé, aucune horloge |
-| P3 · Vert | 04 | `make check` | fmt, clippy `-D warnings`, `cargo test`, `npm test`, scope, tests gelés |
+| P3 · Vert | 04 | `make check` | fmt, clippy `-D warnings`, `cargo test`, `npm test`, scope, tests gelés, cas du hook |
 | P4 · Merge | 05 | Humain | Lit `revue.md` (et le diff si risque élevé) ; décide : livrer, corriger, reprendre à la main |
 
 Chaque passage de porte s'écrit seul dans `journal.md`, sans l'agent : `make check-red` et `make check` y ajoutent leur résultat (et le numéro d'itération de B2), `make valider P=P1 MSG="…"` y signe une décision humaine avec le nom git, `make bilan` y totalise le cycle. L'agent n'y ajoute que ce qui demande du jugement : le diagnostic d'un échec et le verdict de la revue.
