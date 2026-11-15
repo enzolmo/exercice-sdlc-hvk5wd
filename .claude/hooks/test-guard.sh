@@ -53,4 +53,15 @@ cas 2 libre "worktree : cadre refusé selon son propre .sdlc-step" "$(write "$wt
 cas 2 libre "worktree : tests gelés selon son propre .sdlc-step" "$(write "$wt/api/tests/x.rs")"
 cas 0 libre "worktree : code accepté pendant implementer" "$(write "$wt/api/src/x.rs")"
 
+trace() { if tail -1 "$2" 2>/dev/null | jq -e "$3" >/dev/null 2>&1; then echo "ok    $1"; else echo "ÉCHEC $1"; fail=1; fi; }
+trace "hors cycle, le refus va dans .sdlc/guard.log" "$root/.sdlc/guard.log" '.event == "guard_denied"'
+mkdir -p "$root/docs/tickets/T-1"
+ev=$root/docs/tickets/T-1/events.jsonl
+cas 2 implementer "C2 : écriture sous api/tests/ refusée pendant implementer" "$(write api/tests/x.rs)"
+trace "C2 : refus compté avec la règle R2 et le chemin" "$ev" \
+  '.event == "guard_denied" and .rule == "R2" and .target == "api/tests/x.rs" and .step == "implementer" and .ticket == "T-1"'
+cas 2 implementer "commande refusée pendant implementer" "$(bash_ 'make valider P=P1 MSG=secret')"
+trace "refus d'une commande : règle et premier mot seulement" "$ev" \
+  '.rule == "R12" and .target == "make" and (tostring | contains("secret") | not)'
+
 [ $fail = 0 ] && echo "check-cadre OK" || { echo "check-cadre : guard.sh ne fait pas ce que disent ses cas"; exit 1; }
