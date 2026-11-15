@@ -10,10 +10,9 @@ L'agent qui a écrit le code ne peut pas le juger : son avis valide surtout ses 
 1. Calcule la base : `git log --diff-filter=A --format=%H -- docs/tickets/<id>/spec.md | tail -1`.
 2. Lance le sous-agent `reviewer` avec seulement : l'id du ticket, le chemin de la spec, la base, et le numéro du tour (1 ou 2). Ne lui donne ni ton raisonnement, ni ton avis sur le code, ni le journal.
 3. Écris sa réponse telle quelle dans `revue.md` (au tour 2, ajoute-la sous une section « Tour 2 »).
-4. Ajoute au journal le verdict, qui remet à zéro le compteur de la boucle B2 :
+4. Note le verdict avec `make noter`, ce qui remet à zéro le compteur de la boucle B2 :
    ```
-   ## <date heure> · 05 Revue · tour <t>/2
-   Verdict reviewer : <LIVRABLE | À CORRIGER>, <n> bloquants, <m> non bloquants
+   make noter TITRE="05 Revue · tour <t>/2" MSG="Verdict reviewer : <LIVRABLE | À CORRIGER>, <n> bloquants, <m> non bloquants"
    ```
 
 ## Boucle B3 — 2 tours max
@@ -37,4 +36,4 @@ L'humain signe la décision lui-même :
 ! make valider P=P4 MSG="<livrer | corriger | reprendre>, motif : <…>"
 ```
 
-**Commit** : L'agent fait lui-même `git add` (un chemin par fichier) et `git commit` ; `docs: revue <id>` avec `revue.md`, `journal.md` (plus un `fix: … (<id>)` par tour de correction).
+**Commit** : L'agent fait lui-même `git add` (un chemin par fichier) et `git commit` ; `docs: revue <id>` avec `revue.md`, `journal.md`, `events.jsonl` (plus un `fix: … (<id>)` par tour de correction).

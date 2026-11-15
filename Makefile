@@ -1,5 +1,5 @@
 SHELL := /bin/bash
-.PHONY: test api web install check check-red check-scope check-cadre audit valider bilan run-check run-check-red
+.PHONY: test api web install check check-red check-scope check-cadre audit valider noter bilan run-check run-check-red
 
 # Tous les tests (API Rust puis front TypeScript).
 test:
@@ -26,8 +26,15 @@ SOCLE = awk '/^```/ { f = /^```socle/; next } f && NF { print $$1 }' $(SPEC)
 TESTS_RE = ^api/tests/.+\.rs$$|\.test\.ts$$
 export MSG
 
-# $(call journaliser,titre,corps) ajoute une entrée horodatée au journal du ticket, s'il existe
-journaliser = if [ -n "$(T)" ] && [ -d docs/tickets/$(T) ]; then printf '\n\#\# %s · %s\n%s\n' "$$(date '+%Y-%m-%d %H:%M')" "$(1)" "$(2)" >> $(JOURNAL); fi
+EVENTS = docs/tickets/$(T)/events.jsonl
+SESSION = $$(cat .sdlc/session 2>/dev/null)
+
+# $(call journaliser,titre,corps,porte,résultat,itération,auteur) : une entrée au journal et le même événement dans events.jsonl, jamais l'un sans l'autre
+journaliser = if [ -n "$(T)" ] && [ -d docs/tickets/$(T) ]; then \
+  printf '\n\#\# %s · %s\n%s\n' "$$(date '+%Y-%m-%d %H:%M')" "$(1)" "$(2)" >> $(JOURNAL); \
+  jq -nc --arg ts "$$(date -u +%FT%TZ)" --arg ticket "$(T)" --arg step "$(STEP)" --arg title "$(1)" --arg gate "$(3)" \
+    --arg result "$(4)" --arg it "$(5)" --arg actor "$(6)" --arg session "$(SESSION)" \
+    '{event: "journal", ts: $$ts, ticket: $$ticket, step: $$step, title: $$title, gate: $$gate, result: $$result, iteration: ($$it | tonumber? // null), actor: $$actor, session: $$session}' >> $(EVENTS); fi
 
 # P3 · Vert ; journalisée seulement pendant 04, où elle numérote l'itération de B2 (remise à zéro par une revue)
 check:
@@ -37,7 +44,7 @@ check:
 	if [ "$(STEP)" = implementer ]; then \
 	  k=$$(awk '/^## .*· 05 Revue/ { n = 0 } /^## .*· itération/ { n++ } END { print n + 1 }' $(JOURNAL) 2>/dev/null); k=$${k:-1}; \
 	  titre="04 Implémenter · itération $$k/3"; [ "$$k" -le 3 ] || echo "B2 : borne de 3 itérations dépassée, escalade vers l'humain"; \
-	  $(call journaliser,$$titre,$$body); \
+	  $(call journaliser,$$titre,$$body,P3,$$([ $$st = 0 ] && echo VERT || echo ROUGE),$$k,make); \
 	fi; rm -f $$log; exit $$st
 
 run-check: check-scope check-cadre
@@ -53,7 +60,7 @@ run-check: check-scope check-cadre
 check-red:
 	@log=$$(mktemp); $(MAKE) -s --no-print-directory -f $(firstword $(MAKEFILE_LIST)) run-check-red 2>&1 | tee $$log; st=$${PIPESTATUS[0]}; \
 	body="make check-red : $$([ $$st = 0 ] && echo OK || echo ÉCHEC)"$$'\n'"$$(grep -E '^test |test result|check-red|check-scope :' $$log | grep -v ' 0 passed; 0 failed')"; \
-	$(call journaliser,03 Tests · P2,$$body); rm -f $$log; exit $$st
+	$(call journaliser,03 Tests · P2,$$body,P2,$$([ $$st = 0 ] && echo OK || echo ÉCHEC),,make); rm -f $$log; exit $$st
 
 run-check-red: check-scope
 	@! grep -rnE 'SystemTime::now|Local::now|Utc::now|sleep\(' api/tests || { echo "check-red : horloge ou sleep dans api/tests"; exit 1; }
@@ -73,9 +80,10 @@ run-check-red: check-scope
 	echo "$$out" | grep -E '^test |test result'; done; \
 	echo "check-red OK : nouveaux tests rouges, anciens verts"
 
-# R13 · Le hook rejoue ses cas : entrées JSON connues, codes de sortie attendus
+# R13 · Le hook et les cibles de trace rejouent leurs cas : entrées connues, sorties attendues
 check-cadre:
-	@echo "== cadre"; .claude/hooks/test-guard.sh | grep -v '^ok'; exit $${PIPESTATUS[0]}
+	@echo "== cadre"; st=0; for t in .claude/hooks/test-guard.sh .claude/hooks/test-traces.sh; do \
+	  $$t | grep -v '^ok'; [ $${PIPESTATUS[0]} = 0 ] || st=1; done; exit $$st
 
 # Vulnérabilités connues des dépendances ; hors de make check car elle interroge le réseau
 audit:
@@ -97,10 +105,17 @@ check-scope:
 valider:
 	@test -n "$(P)" -a -n "$$MSG" || { echo 'usage : make valider P=P1|P4|escalade MSG="décision et motif"'; exit 1; }
 	@test -d docs/tickets/$(T) || { echo "valider : docs/tickets/$(T) absent"; exit 1; }
-	@body="Validation humaine ($$(git config user.name)) : $$MSG"; $(call journaliser,$(P) · validation humaine,$$body)
+	@body="Validation humaine ($$(git config user.name)) : $$MSG"; $(call journaliser,$(P) · validation humaine,$$body,$(P),validé,,$$(git config user.name))
 	@tail -3 $(JOURNAL)
 
 # Totaux du cycle, ajoutés au journal à l'étape 06
 bilan:
 	@b="itérations B2 : $$(grep -c '^## .*· itération' $(JOURNAL)) · tours B3 : $$(grep -c '^## .*· 05 Revue · tour' $(JOURNAL)) · escalades : $$(grep -c '^## .*· escalade ·' $(JOURNAL)) · validations humaines : $$(grep -c '^Validation humaine' $(JOURNAL))"; \
-	$(call journaliser,06 Livrer · bilan,$$b); echo "$$b"
+	$(call journaliser,06 Livrer · bilan,$$b,,,,make); echo "$$b"
+
+# Entrée de l'agent au journal : make noter TITRE="02 Planifier" MSG="4 tâches ; critères couverts : C1…C5"
+noter:
+	@case "$(TITRE)" in 0[1-6]\ *) ;; *) echo 'noter : TITRE commence par une étape (01 à 06), jamais une porte'; exit 1 ;; esac
+	@! printf '%s %s' "$(TITRE)" "$$MSG" | grep -qi 'validation humaine' || { echo "noter : seul l'humain signe une porte (R12)"; exit 1; }
+	@test -n "$$MSG" -a -d docs/tickets/$(T) || { echo 'usage : make noter TITRE="0X …" MSG="…", ticket actif requis'; exit 1; }
+	@$(call journaliser,$(TITRE),$$MSG,,,,agent)
