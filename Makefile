@@ -108,8 +108,12 @@ valider:
 	@body="Validation humaine ($$(git config user.name)) : $$MSG"; $(call journaliser,$(P) · validation humaine,$$body,$(P),validé,,$$(git config user.name))
 	@tail -3 $(JOURNAL)
 
-# Totaux du cycle, ajoutés au journal à l'étape 06
+# Totaux du cycle, ajoutés au journal à l'étape 06 ; un événement commit par commit du ticket, avec la session qui livre
 bilan:
+	@test -d docs/tickets/$(T) || { echo "bilan : docs/tickets/$(T) absent"; exit 1; }
+	@for sha in $$(git log --reverse --format=%H $(BASE)~1..HEAD 2>/dev/null); do grep -qs "\"sha\":\"$$sha\"" $(EVENTS) || \
+	  jq -nc --arg ts "$$(date -u +%FT%TZ)" --arg ticket "$(T)" --arg sha "$$sha" --arg session "$(SESSION)" \
+	    '{event: "commit", ts: $$ts, ticket: $$ticket, sha: $$sha, session: $$session}' >> $(EVENTS); done
 	@b="itérations B2 : $$(grep -c '^## .*· itération' $(JOURNAL)) · tours B3 : $$(grep -c '^## .*· 05 Revue · tour' $(JOURNAL)) · escalades : $$(grep -c '^## .*· escalade ·' $(JOURNAL)) · validations humaines : $$(grep -c '^Validation humaine' $(JOURNAL))"; \
 	$(call journaliser,06 Livrer · bilan,$$b,,,,make); echo "$$b"
 

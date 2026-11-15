@@ -32,4 +32,19 @@ directs=$(grep -nE '([Aa]joute|[Nn]ote|[ÉéEe]cris|[Ee]xplique|[Ss]ignale)[^.]*
 verifie "C1 : aucune étape ne fait écrire le journal hors d'une cible make"
 [ -n "$directs" ] && echo "$directs"
 
+mY() { make -s --no-print-directory -f "$mk" "$@" T=Y; }
+mkdir -p docs/tickets/Y && echo spec >docs/tickets/Y/spec.md && git add -A && git commit -qm "spec Y"
+cp "$repo/docs/tickets/T-142/journal.md" docs/tickets/Y/journal.md && git add -A && git commit -qm "journal Y"
+EY=docs/tickets/Y/events.jsonl
+jq -nc --arg cwd "$fx/docs" '{session_id: "sess-1", cwd: $cwd, hook_event_name: "SessionStart"}' | "$repo/.claude/hooks/session.sh" 2>/dev/null
+[ "$(cat .sdlc/session 2>/dev/null)" = sess-1 ]
+verifie "C3 : SessionStart écrit l'id de session dans .sdlc/session du dépôt"
+base=$(git log --diff-filter=A --format=%H -- docs/tickets/Y/spec.md | tail -1)
+attendus=$(git log --format=%H "$base~1..HEAD" | sort)
+mY bilan >/dev/null 2>&1
+mY bilan >/dev/null 2>&1
+obtenus=$(jq -r 'select(.event == "commit" and .session == "sess-1") | .sha' $EY 2>/dev/null | sort)
+[ -n "$attendus" ] && [ "$attendus" = "$obtenus" ]
+verifie "C3 : un événement commit par commit du ticket, avec la session, sans doublon"
+
 [ $fail = 0 ] && echo "traces OK" || { echo "check-cadre : les traces ne font pas ce que disent leurs cas"; exit 1; }
