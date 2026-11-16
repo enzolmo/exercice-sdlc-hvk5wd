@@ -28,7 +28,7 @@ Une porte est un endroit où le cycle ne continue pas tout seul. Le jugement hum
 | P3 · Vert | 04 | `make check` | fmt, clippy `-D warnings`, `cargo test`, `npm test`, scope, tests gelés, cas du hook |
 | P4 · Merge | 05 | Humain | Lit `revue.md` (et le diff si risque élevé), lance `make audit` ; décide : livrer, corriger, reprendre à la main |
 
-Chaque passage de porte s'écrit seul dans `journal.md`, sans l'agent : `make check-red` et `make check` y ajoutent leur résultat (et le numéro d'itération de B2), `make valider P=P1 MSG="…"` y signe une décision humaine avec le nom git, `make bilan` y totalise le cycle. L'agent n'y ajoute que ce qui demande du jugement : le diagnostic d'un échec et le verdict de la revue.
+Chaque passage de porte s'écrit seul dans `journal.md`, sans l'agent : `make check-red` et `make check` y ajoutent leur résultat (et le numéro d'itération de B2), `make valider P=P1 MSG="…"` y signe une décision humaine avec le nom git, `make bilan` y totalise le cycle, après avoir vérifié que chaque trace de la liste `ETAPES` du Makefile est présente (« trace manquante : … » sinon ; une étape sautée se signe par la porte `skip`, le nom de l'étape en tête du message). L'agent n'y ajoute que ce qui demande du jugement (le plan, le diagnostic d'un échec, le verdict de la revue), par `make noter`. Chaque entrée est écrite en même temps dans `events.jsonl`, en JSON Lines : le Markdown est la vue humaine, le JSONL la source des métriques.
 
 ## Les trois boucles, toutes bornées
 

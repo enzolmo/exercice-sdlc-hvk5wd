@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 # Envoie des entrées PreToolUse à guard.sh dans un projet jetable et vérifie le code de sortie (0 accepté, 2 refusé).
 guard=$(cd "$(dirname "$0")" && pwd)/guard.sh
-root=$(mktemp -d)
-trap 'rm -rf "$root"' EXIT
+root=$(cd "$(mktemp -d)" && pwd -P)
+wt=$(cd "$(mktemp -d)" && pwd -P)
+trap 'rm -rf "$root" "$wt"' EXIT
+git -C "$root" init -q && git -C "$wt" init -q
+echo "implementer T-1" >"$wt/.sdlc-step"
 export CLAUDE_PROJECT_DIR=$root
 fail=0
 # Coupée en deux : écrite en entier, la formule ferait refuser ce fichier par le hook qu'il teste.
@@ -46,5 +49,19 @@ cas 2 implementer "libre écrit par Bash dans .sdlc-step refusé" "$(bash_ 'echo
 cas 2 implementer "libre écrit par Write dans .sdlc-step refusé" "$(write "$root/.sdlc-step" libre)"
 cas 0 libre "lire libre dans .sdlc-step accepté" "$(bash_ 'grep -c libre .sdlc-step')"
 cas 0 cadrer "étape de cycle écrite dans .sdlc-step acceptée" "$(bash_ 'echo "tests T-1" > .sdlc-step')"
+cas 2 libre "worktree : cadre refusé selon son propre .sdlc-step" "$(write "$wt/sdlc/x.md")"
+cas 2 libre "worktree : tests gelés selon son propre .sdlc-step" "$(write "$wt/api/tests/x.rs")"
+cas 0 libre "worktree : code accepté pendant implementer" "$(write "$wt/api/src/x.rs")"
+
+trace() { if tail -1 "$2" 2>/dev/null | jq -e "$3" >/dev/null 2>&1; then echo "ok    $1"; else echo "ÉCHEC $1"; fail=1; fi; }
+trace "hors cycle, le refus va dans .sdlc/guard.log" "$root/.sdlc/guard.log" '.event == "guard_denied"'
+mkdir -p "$root/docs/tickets/T-1"
+ev=$root/docs/tickets/T-1/events.jsonl
+cas 2 implementer "C2 : écriture sous api/tests/ refusée pendant implementer" "$(write api/tests/x.rs)"
+trace "C2 : refus compté avec la règle R2 et le chemin" "$ev" \
+  '.event == "guard_denied" and .rule == "R2" and .target == "api/tests/x.rs" and .step == "implementer" and .ticket == "T-1"'
+cas 2 implementer "commande refusée pendant implementer" "$(bash_ 'make valider P=P1 MSG=secret')"
+trace "refus d'une commande : règle et premier mot seulement" "$ev" \
+  '.rule == "R12" and .target == "make" and (tostring | contains("secret") | not)'
 
 [ $fail = 0 ] && echo "check-cadre OK" || { echo "check-cadre : guard.sh ne fait pas ce que disent ses cas"; exit 1; }

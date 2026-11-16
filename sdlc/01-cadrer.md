@@ -36,4 +36,4 @@ Présente à l'humain les hypothèses et la classe de risque, puis arrête-toi. 
 
 À la reprise, lis cette entrée du journal, reporte les décisions dans la spec, puis commite.
 
-**Commit** : L'agent fait lui-même `git add` (un chemin par fichier) et `git commit` ; `docs: spec <id>` avec `ticket.md`, `spec.md`, `journal.md`. Ce commit sert de base à `check-scope`.
+**Commit** : L'agent fait lui-même `git add` (un chemin par fichier) et `git commit` ; `docs: spec <id>` avec `ticket.md`, `spec.md`, `journal.md`, `events.jsonl`. Ce commit sert de base à `check-scope`.
