@@ -60,4 +60,10 @@ out=$(make -s --no-print-directory -f "$mk" bilan T=Z 2>&1)
 ! grep -q 'trace manquante' <<<"$out"
 verifie "C4 : une étape sautée par la porte skip n'est pas manquante"
 
+mkdir -p docs/tickets/W && cp "$repo/docs/tickets/T-142/journal.md" docs/tickets/W/
+printf '%s\n' '{"event":"guard_denied","rule":"R2","target":"api/tests/x.rs"}' '{"event":"journal","title":"02 Planifier"}' \
+  '{"event":"guard_denied","rule":"R12","target":"make"}' >docs/tickets/W/events.jsonl
+make -s --no-print-directory -f "$mk" bilan T=W 2>&1 | grep -q 'refus du hook : 2'
+verifie "C5 : le bilan compte les refus du hook"
+
 [ $fail = 0 ] && echo "traces OK" || { echo "check-cadre : les traces ne font pas ce que disent leurs cas"; exit 1; }
