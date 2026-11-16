@@ -27,6 +27,14 @@ TESTS_RE = ^api/tests/.+\.rs$$|\.test\.ts$$
 export MSG
 
 EVENTS = docs/tickets/$(T)/events.jsonl
+# Traces attendues d'un cycle : P1 vaut pour 01, une itération VERT pour P3 ; 06 est l'entrée que bilan écrit lui-même
+ETAPES = P1|02 Planifier|03 Tests · P2|04 Implémenter|P3|05 Revue|P4
+# Une étape sautée se signe par la porte skip, le nom de l'étape dans le message
+MANQUANTES = awk -v etapes='$(ETAPES)' 'BEGIN { n = split(etapes, e, "|") } \
+  /^\#\# / { skip = index($$0, "· skip ·") > 0; for (i = 1; i <= n; i++) if (index($$0, "· " e[i])) ok[i] = 1; next } \
+  /^make check : VERT/ { for (i = 1; i <= n; i++) if (e[i] == "P3") ok[i] = 1 } \
+  skip { for (i = 1; i <= n; i++) if (index($$0, e[i])) ok[i] = 1 } \
+  END { for (i = 1; i <= n; i++) if (!ok[i]) print e[i] }' $(JOURNAL)
 SESSION = $$(cat .sdlc/session 2>/dev/null)
 
 # $(call journaliser,titre,corps,porte,résultat,itération,auteur) : une entrée au journal et le même événement dans events.jsonl, jamais l'un sans l'autre
@@ -103,7 +111,7 @@ check-scope:
 
 # Décision humaine à une porte : make valider P=P1 MSG="hypothèses 1 et 2 validées, 3 corrigée en 422"
 valider:
-	@test -n "$(P)" -a -n "$$MSG" || { echo 'usage : make valider P=P1|P4|escalade MSG="décision et motif"'; exit 1; }
+	@test -n "$(P)" -a -n "$$MSG" || { echo 'usage : make valider P=P1|P4|escalade|skip MSG="décision et motif"'; exit 1; }
 	@test -d docs/tickets/$(T) || { echo "valider : docs/tickets/$(T) absent"; exit 1; }
 	@body="Validation humaine ($$(git config user.name)) : $$MSG"; $(call journaliser,$(P) · validation humaine,$$body,$(P),validé,,$$(git config user.name))
 	@tail -3 $(JOURNAL)
@@ -111,6 +119,7 @@ valider:
 # Totaux du cycle, ajoutés au journal à l'étape 06 ; un événement commit par commit du ticket, avec la session qui livre
 bilan:
 	@test -d docs/tickets/$(T) || { echo "bilan : docs/tickets/$(T) absent"; exit 1; }
+	@miss=$$($(MANQUANTES)); [ -z "$$miss" ] || { sed 's/^/trace manquante : /' <<<"$$miss"; exit 1; }
 	@for sha in $$(git log --reverse --format=%H $(BASE)~1..HEAD 2>/dev/null); do grep -qs "\"sha\":\"$$sha\"" $(EVENTS) || \
 	  jq -nc --arg ts "$$(date -u +%FT%TZ)" --arg ticket "$(T)" --arg sha "$$sha" --arg session "$(SESSION)" \
 	    '{event: "commit", ts: $$ts, ticket: $$ticket, sha: $$sha, session: $$session}' >> $(EVENTS); done
