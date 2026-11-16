@@ -124,6 +124,7 @@ bilan:
 	  jq -nc --arg ts "$$(date -u +%FT%TZ)" --arg ticket "$(T)" --arg sha "$$sha" --arg session "$(SESSION)" \
 	    '{event: "commit", ts: $$ts, ticket: $$ticket, sha: $$sha, session: $$session}' >> $(EVENTS); done
 	@b="itérations B2 : $$(grep -c '^## .*· itération' $(JOURNAL)) · tours B3 : $$(grep -c '^## .*· 05 Revue · tour' $(JOURNAL)) · escalades : $$(grep -c '^## .*· escalade ·' $(JOURNAL)) · validations humaines : $$(grep -c '^Validation humaine' $(JOURNAL))"; \
+	b="$$b · refus du hook : $$(jq -c 'select(.event == "guard_denied")' $(EVENTS) 2>/dev/null | wc -l | tr -d ' ')"; \
 	$(call journaliser,06 Livrer · bilan,$$b,,,,make); echo "$$b"
 
 # Entrée de l'agent au journal : make noter TITRE="02 Planifier" MSG="4 tâches ; critères couverts : C1…C5"
