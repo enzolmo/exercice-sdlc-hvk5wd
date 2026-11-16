@@ -47,4 +47,17 @@ obtenus=$(jq -r 'select(.event == "commit" and .session == "sess-1") | .sha' $EY
 [ -n "$attendus" ] && [ "$attendus" = "$obtenus" ]
 verifie "C3 : un événement commit par commit du ticket, avec la session, sans doublon"
 
+out=$(mY bilan 2>&1)
+! grep -q 'trace manquante' <<<"$out"
+verifie "C4 : le journal de T-142 est complet tel quel"
+mkdir -p docs/tickets/Z
+awk '/^## / { skip = /· 02 Planifier/ } !skip' "$repo/docs/tickets/T-142/journal.md" >docs/tickets/Z/journal.md
+out=$(make -s --no-print-directory -f "$mk" bilan T=Z 2>&1)
+[ $? != 0 ] && grep -qx 'trace manquante : 02 Planifier' <<<"$out"
+verifie "C4 : une étape absente est signalée et le bilan échoue"
+printf '\n## 2026-01-01 00:00 · skip · validation humaine\n%s (test) : 02 Planifier, ticket trivial\n' "$vh" >>docs/tickets/Z/journal.md
+out=$(make -s --no-print-directory -f "$mk" bilan T=Z 2>&1)
+! grep -q 'trace manquante' <<<"$out"
+verifie "C4 : une étape sautée par la porte skip n'est pas manquante"
+
 [ $fail = 0 ] && echo "traces OK" || { echo "check-cadre : les traces ne font pas ce que disent leurs cas"; exit 1; }
