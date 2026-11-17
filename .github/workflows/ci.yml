@@ -1,0 +1,36 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          # La tête de la PR, pas le commit de merge : check-scope compare au commit de la spec et ne doit pas voir les commits ultérieurs de main
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: make test
+      - run: cargo fmt --check
+        working-directory: api
+      - run: cargo clippy --all-targets -- -D warnings
+        working-directory: api
+      - run: make check-cadre
+      - name: check-scope of each ticket the PR touches
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          for t in $(git diff --name-only "origin/$BASE_REF...HEAD" | sed -nE 's#^docs/tickets/([^/]+)/.*#\1#p' | sort -u); do
+            make check-scope T="$t"
+          done
